@@ -1,0 +1,51 @@
+- hosts: all
+  become: true
+
+  tasks:
+    - name: "Configura hostname jenkins"
+      shell: hostname jenkins && echo "jenkins" > /etc/hostname
+
+    - name: "Update apt"
+      shell: "apt-get update"
+
+    - name: "Instala nodejs"
+      shell: "sudo apt install nodejs -y"
+
+    - name: "Instala java"
+      shell: "apt install default-jre -y"
+
+    - name: "Instala npm"
+      shell: "sudo apt install npm -y"
+
+    - name: "Instala ansible"
+      shell: "sudo apt install ansible -y"
+
+    - name: "Install jenkins"
+      shell: |
+        wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key |sudo gpg --dearmor -o /usr/share/keyrings/jenkins.gpg
+        sudo sh -c 'echo deb [signed-by=/usr/share/keyrings/jenkins.gpg] http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+        sudo apt update
+        sudo apt install jenkins
+
+    - name: Espera 30 segundos
+      wait_for: timeout=30
+
+    ## outra forma reduzida de se fazer
+    # - shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+    #   register: ps
+    # - debug: var=ps.stdout_lines
+
+    - shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: ps
+    - debug:
+        msg: "Segredo do jenkins: '{{ ps.stdout_lines }}' "
+        # msg: "Segredo do jenkins: '{{ ps.stderr_lines }}' " # quando quiser ver o erro
+
+    - name: "Copia chave privada"
+      copy:
+        src: "/Users/danilo/Desktop/desafio_devops/terraform/ssh/id_rsa"
+        dest: "/var/lib/jenkins/id_rsa"
+        owner: jenkins
+        group: jenkins
+        mode: '0400'
+        remote_src: false
